@@ -9,17 +9,9 @@ make_list(Len, InitValue, List) ->
 make_list(Len, InitValue) ->
     make_list(Len, InitValue, []).
 
-%% reverse(List)
-reverse([], NewList) ->
-    NewList;
-reverse([Head|Rest], NewList) ->
-    reverse(Rest, [Head|NewList]).
-reverse(List) ->
-    reverse(List, []).
-
 %% set_at(List, Index, Value)
 set_at([], _, _, NewList) ->
-    reverse(NewList);
+    lists:reverse(NewList);
 set_at([_|Rest], 0, Value, NewList) ->
     set_at(Rest, -1, Value, [Value|NewList]);
 set_at([Head|Rest], Index, Value, NewList) ->
@@ -47,8 +39,8 @@ check_used([Head|Rest], FlagList) ->
 minfree(List) ->
     FlagList = make_list(length(List), 0),
     UsedList = check_used(List, FlagList),
-    io:format("~w ~n", [List]),
-    io:format("~w ~n", [UsedList]),
+    %io:format("~w ~n", [List]),
+    %io:format("~w ~n", [UsedList]),
     find_first(UsedList, 0).
 
 %% {List1, List2} = split(List)
