@@ -24,6 +24,10 @@ insert(#bnode{lchild=L,key=K,rchild=R}, Key) ->
             make_bnode(L, K, R)
     end.
 
+preoder_trav(#bnode{lchild=L,key=K,rchild=R}) ->
+    preoder_trav(L),K,preoder_trav(R).
+
+
 
 test() ->
     Node = make_bnode(null, null, null),
