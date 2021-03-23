@@ -33,17 +33,17 @@ concat([], [], Res) ->
 concat(L1, L2) ->
     concat(L1, L2, []).
 
-preorder_trav(null) ->
+preorder_trav(_) ->
     [];
 preorder_trav(#bnode{lchild=L,key=K,rchild=R}) ->
     concat([K|preorder_trav(L)],preorder_trav(R)).
 
-inorder_trav(null) ->
+inorder_trav(_) ->
     [];
 inorder_trav(#bnode{lchild=L,key=K,rchild=R}) ->
     concat(inorder_trav(L),[K|inorder_trav(R)]).
 
-postorder_trav(null) ->
+postorder_trav(_) ->
     [];
 postorder_trav(#bnode{lchild=L,key=K,rchild=R}) ->
     concat(concat(postorder_trav(L), postorder_trav(R)), [K]).
@@ -58,7 +58,7 @@ rightmost(#bnode{key=Key, rchild=null}) ->
 rightmost(#bnode{rchild=R}) ->
     rightmost(R).
 
-depth(null) ->
+depth(_) ->
     0;
 depth(#bnode{lchild=L,rchild=R}) ->
     1 + max(depth(L), depth(R)).
