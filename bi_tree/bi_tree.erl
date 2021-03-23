@@ -48,10 +48,51 @@ postorder_trav(null) ->
 postorder_trav(#bnode{lchild=L,key=K,rchild=R}) ->
     concat(concat(postorder_trav(L), postorder_trav(R)), [K]).
 
+leftmost(#bnode{lchild=null,key=Key}) ->
+    Key;
+leftmost(#bnode{lchild=L}) ->
+    leftmost(L).
+
+rightmost(#bnode{key=Key, rchild=null}) ->
+    Key;
+rightmost(#bnode{rchild=R}) ->
+    rightmost(R).
+
+depth(null) ->
+    0;
+depth(#bnode{lchild=L,rchild=R}) ->
+    1 + max(depth(L), depth(R)).
+
+delete(#bnode{lchild=null,key=Key,rchild=R}, Key) ->
+    R;
+delete(#bnode{lchild=L,key=Key,rchild=null}, Key) ->
+    L;
+delete(#bnode{lchild=L,key=K,rchild=R}, Key) ->
+    if
+        K == null ->
+            make_bnode(L, Key, R);
+        Key < K ->
+            make_bnode(delete(L, Key), K, R);
+        Key > K ->
+            make_bnode(L, K, delete(R, Key));
+        true ->
+            L_depth = depth(L),
+            R_depth = depth(R),
+            if 
+                L_depth > R_depth ->
+                    New = rightmost(L),
+                    make_bnode(delete(L, New), New, R);
+                true ->
+                    New = leftmost(R),
+                    make_bnode(L, New, delete(R, New))
+            end
+    end.
+
 test() ->
     EmptyTree = make_bnode(null, null, null),
     N1 = insert(EmptyTree, 5),
     N2 = insert(N1, 2),
     N3 = insert(N2, 1),
     N4 = insert(N3, 9),
-    inorder_trav(N4).
+    inorder_trav(N4),
+    N5 = delete(N4, 9).
