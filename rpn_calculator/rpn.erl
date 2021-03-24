@@ -56,5 +56,6 @@ syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=null, brackets_recursive=B, wo
             Node1 = #syntax_node{l_child=L#syntax_node.l_child, r_child=Node, type=L#syntax_node.type, value=L#syntax_node.value},
             syntax_parse(#syntax_tree_parser{l_tree=Node1, r_tree=null, brackets_recursive=B, work_stack=T});
         true ->
-            
+            null
+    end.
     syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=Node, brackets_recursive=B, work_stack=T}).
