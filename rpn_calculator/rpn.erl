@@ -71,7 +71,7 @@ syntax_parse0(#syntax_tree_parser{l_tree=null, r_tree=R, brackets_recursive=B, w
 syntax_parse0(#syntax_tree_parser{l_tree=L, r_tree=null, brackets_recursive=B, work_stack=[H|T]}) ->
     if
         L#syntax_node.type == operator ->
-            Node = syntax_parse0(#syntax_tree_parser{l_tree=L#syntax_node.r_child, work_stack=[H]}),
+            Node = syntax_parse0(#syntax_tree_parser{l_tree=L#syntax_node.r_child, work_stack=[H]}), %% so fucking powerful!!!
             Node1 = #syntax_node{l_child=L#syntax_node.l_child, r_child=Node, type=L#syntax_node.type, value=L#syntax_node.value},
             syntax_parse0(#syntax_tree_parser{l_tree=Node1, r_tree=null, brackets_recursive=B, work_stack=T});
         true ->
@@ -85,3 +85,5 @@ syntax_parse0(_) ->
 
 test() ->
     syntax_parse0(#syntax_tree_parser{work_stack=[10,'*',1,'+',2,'*',3,'-',4,'*',5,'/',6]}).
+    % syntax_parse0(#syntax_tree_parser{work_stack=[10,'*',1]}).
+    
