@@ -106,14 +106,46 @@ syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=null, work_stack=[H|T]}) ->
 syntax_parse(_) ->
     pattern_error.
 
+concat([H|T], L2, Res) ->
+    concat(T, L2, [H|Res]);
+concat([], [H|T], Res) ->
+    concat([], T, [H|Res]);
+concat([], [], Res) ->
+    lists:reverse(Res).
+concat(L1, L2) ->
+    concat(L1, L2, []).
 
+postorder_trav(#syntax_node{l_child=L,r_child=R,value=V}) ->
+    concat(concat(postorder_trav(L), postorder_trav(R)), [V]);
+postorder_trav(_) ->
+    [].
+
+to_list(Tree) ->
+    postorder_trav(Tree).
+
+rpn(['+'|T], [Op1,Op2|Stack]) ->
+    rpn(T, [Op2+Op1|Stack]);
+rpn(['-'|T], [Op1,Op2|Stack]) ->
+    rpn(T, [Op2-Op1|Stack]);
+rpn(['*'|T], [Op1,Op2|Stack]) ->
+    rpn(T, [Op2*Op1|Stack]);
+rpn(['/'|T], [Op1,Op2|Stack]) ->
+    rpn(T, [Op2/Op1|Stack]);
+rpn([H|T], Stack) ->
+    rpn(T, [H|Stack]);
+rpn([], [H|_]) ->
+    H.
+rpn(L) ->
+    rpn(L, []).
 
 test() ->
-    % syntax_parse(#syntax_tree_parser{work_stack=[10,'*',1,'+',2,'*',3,'-',4,'*',5,'/',6]}).
+    % T = syntax_parse(#syntax_tree_parser{work_stack=[10,'*',1,'+',2,'*',3,'-',4,'*',5,'/',6]}),
     % syntax_parse(#syntax_tree_parser{work_stack=[10,'*',1]}).
     % syntax_parse(#syntax_tree_parser{work_stack=['(','(',1,'-',2,')','+',3,')','*',4]}).
     % syntax_parse(#syntax_tree_parser{work_stack=['(',1,'-',2,'+',3,')','*',4]}).
     % syntax_parse(#syntax_tree_parser{work_stack=['(',1,'-',2,'*',3,')','*',4]}).
     % syntax_parse(#syntax_tree_parser{work_stack=[1,'*','(',2,'+',3,')']}).
-    syntax_parse(#syntax_tree_parser{work_stack=['(',1,'-',2,')','*','(',3,'+',4,')']}).
+    T=syntax_parse(#syntax_tree_parser{work_stack=['(',1,'-',2,')','*','(',3,'+',4,')']}),
+    L=to_list(T),
+    rpn(L).
     
