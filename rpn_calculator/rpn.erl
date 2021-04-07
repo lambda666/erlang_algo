@@ -133,12 +133,16 @@ string_to_number(S) ->
     end.
 
 rpn(["+"|T], [Op1,Op2|Stack]) ->
+    io:format("~w+~w~n",[Op2,Op1]),
     rpn(T, [Op2+Op1|Stack]);
 rpn(["-"|T], [Op1,Op2|Stack]) ->
+    io:format("~w-~w~n",[Op2,Op1]),
     rpn(T, [Op2-Op1|Stack]);
 rpn(["*"|T], [Op1,Op2|Stack]) ->
+    io:format("~w*~w~n",[Op2,Op1]),
     rpn(T, [Op2*Op1|Stack]);
 rpn(["/"|T], [Op1,Op2|Stack]) ->
+    io:format("~w/~w~n",[Op2,Op1]),
     rpn(T, [Op2/Op1|Stack]);
 rpn([H|T], Stack) ->
     rpn(T, [string_to_number(H)|Stack]);
@@ -147,22 +151,35 @@ rpn([], [H|_]) ->
 rpn(L) ->
     rpn(L, []).
 
-tokens([H|T], _) ->
-    H == "(";
-tokens(["("|T], [C|S]) ->
-    tokens(T, ["(", C|S]);
-tokens([")"|T], [C|S]) ->
-    tokens(T, [")", C|S]);
-tokens(["+"|T], [C|S]) ->
-    tokens(T, ["+", C|S]);
-tokens(["-"|T], [C|S]) ->
-    tokens(T, ["-", C|S]);
-tokens(["*"|T], [C|S]) ->
-    tokens(T, ["*", C|S]);
-tokens(["/"|T], [C|S]) ->
-    tokens(T, ["/", C|S]);
-tokens([H|T], [C|S]) ->
-    tokens(T, [[H,C]|S]);
+tokens([$(|T], L) ->
+    tokens(T, ["(" | L]);
+tokens([$)|T], L) ->
+    tokens(T, [")" | L]);
+tokens([$+|T], L) ->
+    tokens(T, ["+" | L]);
+tokens([$-|T], L) ->
+    tokens(T, ["-" | L]);
+tokens([$*|T], L) ->
+    tokens(T, ["*" | L]);
+tokens([$/|T], L) ->
+    tokens(T, ["/" | L]);
+
+tokens([H|T], ["("|L]) ->
+    tokens(T, [[H],"("|L]);
+tokens([H|T], [")"|L]) ->
+    tokens(T, [[H],")"|L]);
+tokens([H|T], ["+"|L]) ->
+    tokens(T, [[H],"+"|L]);
+tokens([H|T], ["-"|L]) ->
+    tokens(T, [[H],"-"|L]);
+tokens([H|T], ["*"|L]) ->
+    tokens(T, [[H],"*"|L]);
+tokens([H|T], ["/"|L]) ->
+    tokens(T, [[H],"/"|L]);
+tokens([H|T], [S|L]) ->
+    tokens(T, [lists:reverse([H|lists:reverse(S)])|L]);
+tokens([H|T], []) ->
+    tokens(T, [[H]]);
 tokens([], S) ->
     lists:reverse(S).
 tokens(S) ->
@@ -171,6 +188,9 @@ tokens(S) ->
 eval(L) ->
     rpn(to_list(parse(string:tokens(L, " ")))).
 
+eval_v2(L) ->
+    rpn(to_list(parse(tokens(L)))).
+
 test() ->
     % T = syntax_parse(#syntax_tree_parser{work_stack=[10,"*",1,"+",2,"*",3,"-",4,"*",5,"/",6]}),
     % syntax_parse(#syntax_tree_parser{work_stack=[10,"*",1]}).
@@ -178,10 +198,12 @@ test() ->
     % syntax_parse(#syntax_tree_parser{work_stack=["(",1,"-",2,"+",3,")","*",4]}).
     % syntax_parse(#syntax_tree_parser{work_stack=["(",1,"-",2,"*",3,")","*",4]}).
     % syntax_parse(#syntax_tree_parser{work_stack=[1,"*","(",2,"+",3,")"]}).
-    % T=syntax_parse(#syntax_tree_parser{work_stack=["(",1,"-",2,")","*","(",3,"+",4,")"]}),
-    % L=to_list(T),
+    T=syntax_parse(#syntax_tree_parser{work_stack=[1,"+",2.5,"*","(",3,"+",4,")"]}),
+    L=to_list(T).
     % rpn(L).
     % string:tokens("( 1 - 2 ) * ( 3 + 4 )", " ").
     % eval("( 1.0 + 2 ) * ( 3 + 4 )").
-    tokens("(1+2)*(3+4)").
+    % tokens("(134+256)*(3+459)").
+    % tokens("134.5+256*(3+459)").
+    % eval_v2("1+2.5*(2-1)").
     
