@@ -10,100 +10,100 @@
     l_child=null,
     value='',
     r_child=null,
-    type=null, % operand or operator
-    prior=null % high or low
+    brackets=null,
+    type=null % operand or operator
 }).
 
 -record(syntax_tree_parser,{
-    l_tree=null,
-    r_tree=null,
-    brackets_recursive=0,
+    tree=null,
     work_stack=[]
 }).
 
-prior_down(#syntax_node{l_child=L, r_child=null, type=T, value=V}) ->
-    #syntax_node{l_child=L, r_child=null, type=T, value=V, prior=low};
-prior_down(#syntax_node{l_child=L, r_child=R, type=T, value=V, prior=P}) ->
-    #syntax_node{l_child=L, r_child=prior_down(R), type=T, value=V, prior=P}.
+insert_op2(#syntax_node{l_child=L, r_child=null, type=T, value=V},N2) ->
+    #syntax_node{l_child=L, r_child=N2, type=T, value=V};
+insert_op2(N1,N2) ->
+    N1#syntax_node{r_child=insert_op2(N1#syntax_node.r_child,N2)}.
 
-syntax_parse(#syntax_tree_parser{l_tree=L, work_stack=[]}) ->
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=[]}) ->
     io:format("Node0: ~w ~n", [L]),
-    L;
+    #syntax_tree_parser{tree=L, work_stack=[]};
 
-syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=R, work_stack=["("|T]}) ->
-    if
-        L == null ->
-            syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=R, work_stack=T});
-        true ->
-            Node = prior_down(L),
-            io:format("Node1: ~w ~n", [Node]),
-            syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=R, work_stack=T})
-    end;
-syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=R, work_stack=[")"|T]}) ->
-    Node = #syntax_node{l_child=L#syntax_node.l_child, r_child=L#syntax_node.r_child, type=L#syntax_node.type, value=L#syntax_node.value, prior=high},
-    io:format("Node2: ~w ~n", [Node]),
-    syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=R, work_stack=T});
+syntax_parse(#syntax_tree_parser{tree=null, work_stack=["("|T]}) ->
+    P = syntax_parse(#syntax_tree_parser{work_stack=T}),
+    io:format("Node1: ~w ~n", [P]),
+    syntax_parse(#syntax_tree_parser{tree=P#syntax_tree_parser.tree, work_stack=P#syntax_tree_parser.work_stack});
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=["("|T]}) ->
+    P = syntax_parse(#syntax_tree_parser{work_stack=T}),
+    io:format("Node2: ~w ~n", [P#syntax_tree_parser.tree]),
+    Node = insert_op2(L,P#syntax_tree_parser.tree),
+    % Node = #syntax_node{l_child=L#syntax_node.l_child, r_child=P#syntax_tree_parser.tree, type=L#syntax_node.type, value=L#syntax_node.value},
+    io:format("Node3: ~w ~n", [Node]),
+    io:format("Node4: ~w ~n", [L]),
+    syntax_parse(#syntax_tree_parser{tree=Node, work_stack=P#syntax_tree_parser.work_stack});
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=[")"|T]}) ->
+    io:format("Node5: ~w ~n", [L]),
+    #syntax_tree_parser{tree=L#syntax_node{brackets=true}, work_stack=T};
 
-syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=R, work_stack=["+"|T]}) ->
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=["+"|T]}) ->
+    Node = #syntax_node{l_child=L, type=operator, value="+"},
+    io:format("Node6: ~w ~n", [Node]),
+    syntax_parse(#syntax_tree_parser{tree=Node, work_stack=T});
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=["-"|T]}) ->
+    Node = #syntax_node{l_child=L, type=operator, value="-"},
+    io:format("Node7: ~w ~n", [Node]),
+    syntax_parse(#syntax_tree_parser{tree=Node, work_stack=T});
+
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=["*"|T]}) ->
     if 
-        L#syntax_node.prior == low ->
-            Node = #syntax_node{l_child=L#syntax_node.r_child, r_child=R, type=operator, value="+"},
-            Node1 = #syntax_node{l_child=L#syntax_node.l_child, r_child=Node, type=L#syntax_node.type, value=L#syntax_node.value, prior=L#syntax_node.prior},
-            io:format("Node3: ~w ~n", [Node1]),
-            syntax_parse(#syntax_tree_parser{l_tree=Node1, r_tree=null, work_stack=T});
+        L#syntax_node.value == "+", L#syntax_node.brackets =/= true ->
+            Node = #syntax_node{l_child=L#syntax_node.r_child, type=operator, value="*"},
+            io:format("Node8: ~w ~n", [Node]),
+            Node1 = L#syntax_node{r_child = Node},
+            io:format("Node9: ~w ~n", [Node1]),
+            syntax_parse(#syntax_tree_parser{tree=Node1, work_stack=T});
+        L#syntax_node.value == "-", L#syntax_node.brackets =/= true ->
+            Node = #syntax_node{l_child=L#syntax_node.r_child, type=operator, value="*"},
+            io:format("Node10: ~w ~n", [Node]),
+            Node1 = L#syntax_node{r_child = Node},
+            io:format("Node11: ~w ~n", [Node1]),
+            syntax_parse(#syntax_tree_parser{tree=Node1, work_stack=T});
         true ->
-            Node = #syntax_node{l_child=L, r_child=R, type=operator, value="+"},
-            syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=null, work_stack=T})
+            Node = #syntax_node{l_child=L, type=operator, value="*"},
+            io:format("Node12: ~w ~n", [Node]),
+            syntax_parse(#syntax_tree_parser{tree=Node, work_stack=T})
     end;
-syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=R, work_stack=["-"|T]}) ->
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=["/"|T]}) ->
     if 
-        L#syntax_node.prior == low ->
-            Node = #syntax_node{l_child=L#syntax_node.r_child, r_child=R, type=operator, value="-"},
-            Node1 = #syntax_node{l_child=L#syntax_node.l_child, r_child=Node, type=L#syntax_node.type, value=L#syntax_node.value, prior=L#syntax_node.prior},
-            io:format("Node4: ~w ~n", [Node1]),
-            syntax_parse(#syntax_tree_parser{l_tree=Node1, r_tree=null, work_stack=T});
+        L#syntax_node.value == "+", L#syntax_node.brackets =/= true ->
+            Node = #syntax_node{l_child=L#syntax_node.r_child, type=operator, value="/"},
+            io:format("Node13: ~w ~n", [Node]),
+            Node1 = L#syntax_node{r_child = Node},
+            io:format("Node14: ~w ~n", [Node1]),
+            syntax_parse(#syntax_tree_parser{tree=Node1, work_stack=T});
+        L#syntax_node.value == "-", L#syntax_node.brackets =/= true ->
+            Node = #syntax_node{l_child=L#syntax_node.r_child, type=operator, value="/"},
+            io:format("Node15: ~w ~n", [Node]),
+            Node1 = L#syntax_node{r_child = Node},
+            io:format("Node16: ~w ~n", [Node1]),
+            syntax_parse(#syntax_tree_parser{tree=Node1, work_stack=T});
         true ->
-            Node = #syntax_node{l_child=L, r_child=R, type=operator, value="-"},
-            syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=null, work_stack=T})
+            Node = #syntax_node{l_child=L, type=operator, value="/"},
+            io:format("Node17: ~w ~n", [Node]),
+            syntax_parse(#syntax_tree_parser{tree=Node, work_stack=T})
     end;
 
-syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=R, work_stack=["*"|T]}) ->
-    if 
-        L#syntax_node.value == "+", L#syntax_node.prior /= high ->
-            Node = #syntax_node{l_child=L#syntax_node.r_child, r_child=R, type=operator, value="*"},
-            syntax_parse(#syntax_tree_parser{l_tree=L#syntax_node.l_child, r_tree=Node, work_stack=["+"|T]});
-        L#syntax_node.value == "-", L#syntax_node.prior /= high ->
-            Node = #syntax_node{l_child=L#syntax_node.r_child, r_child=R, type=operator, value="*"},
-            syntax_parse(#syntax_tree_parser{l_tree=L#syntax_node.l_child, r_tree=Node, work_stack=["-"|T]});
-        true ->
-            Node = #syntax_node{l_child=L, r_child=R, type=operator, value="*"},
-            syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=null, work_stack=T})
-    end;
-syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=R, work_stack=["/"|T]}) ->
-    if 
-        L#syntax_node.value == "+", L#syntax_node.prior /= high ->
-            Node = #syntax_node{l_child=L#syntax_node.r_child, r_child=R, type=operator, value="/"},
-            syntax_parse(#syntax_tree_parser{l_tree=L#syntax_node.l_child, r_tree=Node, work_stack=["+"|T]});
-        L#syntax_node.value == "-", L#syntax_node.prior /= high ->
-            Node = #syntax_node{l_child=L#syntax_node.r_child, r_child=R, type=operator, value="/"},
-            syntax_parse(#syntax_tree_parser{l_tree=L#syntax_node.l_child, r_tree=Node, work_stack=["-"|T]});
-        true ->
-            Node = #syntax_node{l_child=L, r_child=R, type=operator, value="/"},
-            syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=null, work_stack=T})
-    end;
-
-syntax_parse(#syntax_tree_parser{l_tree=null, r_tree=null, work_stack=[H|T]}) ->
+syntax_parse(#syntax_tree_parser{tree=null, work_stack=[H|T]}) ->
     Node = #syntax_node{type=operand, value=H},
-    syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=null, work_stack=T});
-syntax_parse(#syntax_tree_parser{l_tree=null, r_tree=R, work_stack=[H|T]}) ->
-    Node = #syntax_node{type=operand, value=H},
-    syntax_parse(#syntax_tree_parser{l_tree=Node, r_tree=R, work_stack=T});
-syntax_parse(#syntax_tree_parser{l_tree=L, r_tree=null, work_stack=[H|T]}) ->
+    io:format("Node18: ~w ~n", [Node]),
+    syntax_parse(#syntax_tree_parser{tree=Node, work_stack=T});
+syntax_parse(#syntax_tree_parser{tree=L, work_stack=[H|T]}) ->
     if
         L#syntax_node.type == operator ->
-            Node = syntax_parse(#syntax_tree_parser{l_tree=L#syntax_node.r_child, work_stack=[H]}), %% so fucking powerful!!!
-            Node1 = #syntax_node{l_child=L#syntax_node.l_child, r_child=Node, type=L#syntax_node.type, value=L#syntax_node.value, prior=L#syntax_node.prior},
-            syntax_parse(#syntax_tree_parser{l_tree=Node1, r_tree=null, work_stack=T});
+            Node = #syntax_node{type=operand, value=H},
+            io:format("Node19: ~w ~n", [Node]),
+            Node1 = insert_op2(L, Node),
+            io:format("Node20: ~w ~n", [Node1]),
+            syntax_parse(#syntax_tree_parser{tree=Node1, work_stack=T});
         true ->
             syntax_error
     end;
@@ -112,7 +112,8 @@ syntax_parse(_) ->
     pattern_error.
 
 parse(L) ->
-    syntax_parse(#syntax_tree_parser{work_stack=L}).
+    T = syntax_parse(#syntax_tree_parser{work_stack=L}),
+    T#syntax_tree_parser.tree.
 
 concat([H|T], L2, Res) ->
     concat(T, L2, [H|Res]);
@@ -198,17 +199,18 @@ eval_v2(L) ->
 
 test() ->
     % T = syntax_parse(#syntax_tree_parser{work_stack=[10,"*",1,"+",2,"*",3,"-",4,"*",5,"/",6]}),
-    % syntax_parse(#syntax_tree_parser{work_stack=[10,"*",1]}).
-    % syntax_parse(#syntax_tree_parser{work_stack=["(","(",1,"-",2,")","+",3,")","*",4]}).
-    % syntax_parse(#syntax_tree_parser{work_stack=["(",1,"-",2,"+",3,")","*",4]}).
-    % syntax_parse(#syntax_tree_parser{work_stack=["(",1,"-",2,"*",3,")","*",4]}).
-    T=syntax_parse(#syntax_tree_parser{work_stack=[1,"*","(",2,"+",3,")"]}), %%%ok
-    % T=syntax_parse(#syntax_tree_parser{work_stack=[1,"+",2.5,"*","(",3,"+",4,")"]}), %%%fail
-    L=to_list(T).
+    % T=syntax_parse(#syntax_tree_parser{work_stack=[10,"*",1]}),
+    % T=syntax_parse(#syntax_tree_parser{work_stack=["(","(",1,"-",2,")","+",3,")","*",4]}),
+    % T=syntax_parse(#syntax_tree_parser{work_stack=["(",1,"-",2,"+",3,")","*",4]}),
+    % T=syntax_parse(#syntax_tree_parser{work_stack=["(",1,"-",2,"*",3,")","*",4]}),
+    % T=syntax_parse(#syntax_tree_parser{work_stack=[1,"*","(",2,"+",3,")"]}),
+    % T=syntax_parse(#syntax_tree_parser{work_stack=[1,"+",2.5,"*","(",3,"+",4,")"]}),
+    % T=syntax_parse(#syntax_tree_parser{work_stack=["(",1,"+",2.5,")","*","(",3,"+",4,")"]}),
+    % L=to_list(T#syntax_tree_parser.tree).
     % rpn(L).
     % string:tokens("( 1 - 2 ) * ( 3 + 4 )", " ").
     % eval("( 1.0 + 2 ) * ( 3 + 4 )").
     % tokens("(134+256)*(3+459)").
     % tokens("134.5+256*(3+459)").
-    % eval_v2("1+2.5*(2-1)").
+    eval_v2("(1+2.5)*(2-1)").
     
